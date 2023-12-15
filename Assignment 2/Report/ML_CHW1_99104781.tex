@@ -1,0 +1,363 @@
+\documentclass[]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{color}
+\usepackage{listings}
+\usepackage[top=1in, right=0.75in, left=0.75in]{geometry}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+\author{
+	Mohammad Hossein Shafizadegan\\
+	99104781
+}
+\title{
+	Coding Assignment 1 \\
+	Machine Learning  \\
+	Dr. M. Shamsollahi
+}
+
+\pagestyle{fancy}
+\rhead{ML}
+\lhead{CHW 1}
+
+\newcommand{\pict}[2]{\begin{center}
+		\includegraphics[width=#1\linewidth]{Fig/#2.png}
+\end{center}}
+\newcommand{\mat}[1]{\begin{bmatrix} #1 \end{bmatrix}}
+\newcommand{\deter}[1]{\begin{vmatrix} #1 \end{vmatrix}}
+
+\definecolor{customgreen}{rgb}{0,0.6,0}
+\definecolor{customgray}{rgb}{0.5,0.5,0.5}
+\definecolor{custommauve}{rgb}{0.6,0,0.8}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+	language=python,
+	aboveskip=3mm,
+	belowskip=3mm,
+	showstringspaces=false,
+	columns=flexible,
+	frame=single,	                   % adds a frame around the code
+	basicstyle={\small\ttfamily},
+	numbers=none,
+	numberstyle=\tiny\color{gray},
+	keywordstyle=\color{blue},
+	commentstyle=\color{dkgreen},
+	stringstyle=\color{mauve},
+	breaklines=true,
+	rulecolor=\color{black},
+	breakatwhitespace=true,
+	tabsize=3,
+	numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+	numbersep=10pt,                   % how far the line-numbers are from the code
+	numberstyle=\tiny\color{customgray}, % the style that is used for the line-numbers
+}
+
+\begin{document}
+	\begin{figure}
+		\includegraphics[width=0.25\textwidth]{Fig/Sharif.png}
+		\centering
+	\end{figure}
+	\maketitle
+	\tableofcontents
+	\newpage
+		%-----------------------------------------------------------------------------------------------------------------	
+	\section{Question 1}
+	\subsection{Perceptron}
+	First we simply load the asked dataset and store it in a pandas data frame format. Using the "head()" built-in function from pandas we can observe the first 5 lines of our dataset.
+	\begin{lstlisting}
+		data = load_breast_cancer()
+		X = data.data  
+		y = data.target
+		
+		print(f"Size of dataset: {X.shape}")
+		
+		# Create a DataFrame
+		df = pd.DataFrame(data.data, columns=data.feature_names)
+		df['target'] = data.target  # Adding the target column
+		
+		# Display the first few rows of the dataset
+		print(df.head())
+	\end{lstlisting}
+	\pict{0.5}{F1}
+	The "train\_test\_split()" function from sklearn will simply separate our data for forming the train and test data.
+	\begin{lstlisting}
+		# split the dataset to train and test
+		X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+	\end{lstlisting}
+	Now we want to implement the perceptron algorithm. First we have developed a function called "predict\_perceptron" which calculates the following:
+	\begin{align*}
+		y = \begin{cases}
+			1 \qquad &\text{ if } w^Tx \ge \theta \\
+			0 & \text{ O.W.}
+		\end{cases}
+	\end{align*}
+	\begin{lstlisting}
+		def predict_perceptron(X, weights, bias):
+			return np.where(np.dot(X, weights) - bias >= 0, 1, 0)
+	\end{lstlisting}
+	Then another function called "train\_perceptron", we first initialize the wights vector and the threshold randomly, then in loop for number of the asked epochs, using the delta rule in batch mode, we interatively update the value of weights and threshold after each epoch finished.
+	\begin{lstlisting}
+		def train_perceptron(X, y, learning_rate=0.01, epochs=100):
+			# Initialize weights and bias
+			weights = np.zeros(X.shape[1])
+			bias = 0
+			
+			for epoch in range(epochs):
+				# Compute predicted values
+				y_pred = predict_perceptron(X, weights, bias)
+				
+				# Update weights and bias using batch mode
+				weights += learning_rate * np.dot((y - y_pred), X)
+				bias -= learning_rate * np.sum(y - y_pred)
+			
+			return weights, bias
+	\end{lstlisting}
+	Batch mode is generally used when you have the computational capacity to process the entire dataset at once and when the dataset is not expected to change over time. On the other hand, sample mode is used for large or continuously updating datasets where processing the entire data at once is not feasible. Hence, we decided to use the batch mode of the algorithm here.\\\\
+	Now using the above function, we train our network and calculate the predicted values for our test data set and assess the results by  calculating the accuracy and finding the confusion matrix as follows:
+	\begin{lstlisting}
+		# Initialize and train the perceptron
+		trained_weights, trained_bias = train_perceptron(X_train, y_train, learning_rate=0.01, epochs=1000)
+		
+		# Predictions on the test set
+		y_pred = predict_perceptron(X_test, trained_weights, trained_bias)
+		
+		# Calculate accuracy and confusion matrix
+		accuracy = accuracy_score(y_test, y_pred)
+		conf_matrix = confusion_matrix(y_test, y_pred)
+		
+		# Display results
+		print("Accuracy:", accuracy)
+		print("Confusion Matrix:\n", conf_matrix)
+	\end{lstlisting}
+	The results can be seen below:
+	\pict{0.3}{F2}
+	Now in order to visualize the confusion matrix in a prettier way, we have developed the following function which utilize the "sns.heatmap" buitl-in function:
+	\begin{lstlisting}
+		def disp_conf_mat(conf_matrix):
+			# Visualize the confusion matrix using a heatmap
+			sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'],
+			yticklabels=['Negative', 'Positive'])
+			plt.figure
+			plt.xlabel('Predicted Labels')
+			plt.ylabel('True Labels')
+			plt.title('Confusion Matrix')
+			plt.show()
+	\end{lstlisting}
+	\pict{0.4}{F3}
+	
+	\subsection{KNN}
+	In this section, we’ve provided is an implementation of the k-nearest neighbors (k-NN) algorithm for classification. Here’s a brief explanation of how it works:
+	\begin{itemize}
+		\item predict\_single \\
+		calculates the Euclidean distance between a test example and all training examples, identifies the k nearest neighbors, and determines the most common class label among these neighbors. This label is then returned as the prediction for the test example.
+		\item knn\_predict \\
+		takes the training data (X\_train, y\_train) and test data (X\_test) as inputs, along with an optional parameter k which defaults to 3. It predicts the class label for each test example by applying the "predict\_single" function to each one.
+	\end{itemize}
+	\begin{lstlisting}
+		def knn_predict(X_train, y_train, X_test, k=3):
+			predictions = [predict_single(x, X_train, y_train, k) for x in X_test]
+			return np.array(predictions)
+		
+		def predict_single(x, X_train, y_train, k):
+			# Calculate distances to all points in the training set
+			distances = [np.linalg.norm(x - x_train) for x_train in X_train]
+			
+			# Get indices of k-nearest training data points
+			k_neighbors_indices = np.argsort(distances)[:k]
+			
+			# Get the labels of the k-nearest training data points
+			k_neighbor_labels = [y_train[i] for i in k_neighbors_indices]
+			
+			# Return the most common class label
+			most_common = Counter(k_neighbor_labels).most_common(1)
+			return most_common[0][0]
+	\end{lstlisting}
+	Now for different values of k, we predict the labels and display the accuracy and confusion matrix correspondingly using the following code :
+	\begin{lstlisting}
+		# Define k values
+		k_values = [1, 3, 5, 7]
+		
+		for k in k_values:
+			y_pred = knn_predict(X_train, y_train, X_test, k)
+			accuracy = accuracy_score(y_test, y_pred)
+			conf_matrix = confusion_matrix(y_test, y_pred)
+			
+			# Display results
+			print(f"\nResults for k = {k}")
+			print("Accuracy:", accuracy)
+			disp_conf_mat(conf_matrix)
+	\end{lstlisting}
+	The results can be seen below:
+	\pict{0.9}{F4}
+	
+	\subsection{SVM}
+	In this section we are going to use SVM algorithm for classification. We simply use the built-in functions from the "sklearn.svm" library. The code of this section  is as follows:
+	\begin{lstlisting}
+		# Initialize and train the SVM classifier
+		svm_classifier = SVC(kernel='linear')
+		svm_classifier.fit(X_train, y_train)
+		
+		# Make predictions on the test set
+		y_pred_svm = svm_classifier.predict(X_test)
+	\end{lstlisting}
+	Then we calculate the accuracy and display the confusion matrix for this classification.
+	\begin{lstlisting}
+		# Calculate accuracy and confusion matrix for SVM
+		accuracy_svm = accuracy_score(y_test, y_pred_svm)
+		conf_matrix_svm = confusion_matrix(y_test, y_pred_svm)
+		
+		# Display results for SVM
+		print("\nResults for SVM")
+		print("Accuracy:", accuracy_svm)
+		
+		disp_conf_mat(conf_matrix)
+	\end{lstlisting}
+	\pict{0.4}{F5}
+	
+	\subsection{Bayes Classifier}
+	In this section, we classify our data using Bayes classifier. There are some built-in functions from "sklearn" to do so.
+	\begin{lstlisting}
+		# Initialize and train the Gaussian Naive Bayes classifier
+		nb_classifier = GaussianNB()
+		nb_classifier.fit(X_train, y_train)
+		
+		# Make predictions on the test set
+		y_pred_nb = nb_classifier.predict(X_test)
+		
+		# Calculate accuracy and confusion matrix for Naive Bayes
+		accuracy_nb = accuracy_score(y_test, y_pred_nb)
+		conf_matrix_nb = confusion_matrix(y_test, y_pred_nb)
+		
+		# Display results for Naive Bayes
+		print("\nResults for Gaussian Naive Bayes")
+		print("Accuracy:", accuracy_nb)
+		disp_conf_mat(conf_matrix)
+	\end{lstlisting}
+	The results for this approach cab be seen below:
+	\pict{0.4}{F6}
+	
+	\subsection{Comparison}
+	In order to compare the performance of these classifier we can assess the accuracy we calculated before. 
+	\begin{center}
+		\begin{tabular}{|c|c|}
+			\hline
+			classifier & accuracy \\
+			\hline
+			perceptron & 95.32 \\ \hline
+			knn, k = 1 & 93.56 \\ \hline
+			knn, k = 3 & 94.15 \\ \hline
+			knn, k = 5 & 95.9 \\ \hline
+			knn, k = 7 & 96.49 \\ \hline
+			SVM & 96.5 \\ \hline
+			Bayes & 94.15 \\ 
+			\hline
+		\end{tabular}
+	\end{center}
+	If we just consider accuracy for measuring the performance, it can be inferred that the SVM and KNN with $k=7$ have the best performance among the models we compare.\\\\
+	Relying solely on accuracy to assess the performance of models is not always recommended, especially for datasets with imbalanced classes or when the costs of different types of errors vary significantly.\\\\
+	Here we also assess precision, recall and F1 score for our models too. In the following code, we have calculated and displayed the values for precision, recall and F1 score for different methods and store them in corresponding arrays.
+	\begin{lstlisting}
+		from sklearn.metrics import precision_score, recall_score, f1_score
+		
+		y_predics = [ y_pred_nb, 
+								y_pred_svm,
+								knn_predict(X_train, y_train, X_test, 7),
+								knn_predict(X_train, y_train, X_test, 5),
+								knn_predict(X_train, y_train, X_test, 3),
+								knn_predict(X_train, y_train, X_test, 1),
+								predict_perceptron(X_test, trained_weights, trained_bias)]
+		
+		titles = ["Bayes Classifier", "SVM", "KNN, k=7", "KNN, k=5",
+					  "KNN, k=3", "KNN, k=1", "Perceptron"]
+		
+		precisions = np.zeros(len(titles))
+		recalls = np.zeros(len(titles))
+		f1_scores = np.zeros(len(titles))
+		
+		for i, y_pred in enumerate(y_predics):
+		
+			precision = precision_score(y_test, y_pred, average='weighted')
+			recall = recall_score(y_test, y_pred, average='weighted')
+			f1 = f1_score(y_test, y_pred, average='weighted')
+			
+			precisions[i] = precision
+			recalls[i] = recall
+			f1_scores[i] = f1
+			
+			print(f"Metrics for {titles[i]}")
+			print(f"Precision: {precision}")
+			print(f"Recall: {recall}")
+			print(f"F1 Score: {f1}")
+			print("==========================\n")
+	\end{lstlisting}
+	Finally at the end we have clarified which model has the best performance.
+	\begin{lstlisting}
+		print(f"{titles[np.argmax(precisions)]} has the best precison ")
+		print(f"{titles[np.argmax(recalls)]} has the best recall ")
+		print(f"{titles[np.argmax(f1_scores)]} has the best F1 score ")
+	\end{lstlisting}
+	\pict{0.3}{F8}
+		%-----------------------------------------------------------------------------------------------------------------	
+	\section{Question 2}
+	\subsection{Parzen Estimation}
+	First we generate the asked samples
+	\begin{lstlisting}
+		np.random.seed(42)  # for reproducibility
+		X = np.random.normal(0, 1, 20000)
+	\end{lstlisting}
+	First we implement the uniform kernel simply using the following functions 
+	\begin{lstlisting}
+		def uniform_kernel(u):
+		
+			return np.where(np.abs(u) <= 0.5, 1, 0)
+	\end{lstlisting}
+	If $|u| \le 0.5$, it returns $1$, indicating that the point is within the kernel’s window; otherwise, it returns $0$.\\\\
+	Then we develop a function called "parzen\_window" which estimates the density at a point $x$ given a set of sample points samples and a bandwidth $h$.
+	\begin{lstlisting}
+		def parzen_window_pdf(x_values, samples, h=1):
+			pdf_values = [parzen_window(x, samples, h) for x in x_values]
+			return np.array(pdf_values)
+	\end{lstlisting}
+	Finally we have developed a function called "parzen\_window".
+	\begin{lstlisting}
+		def parzen_window(x, samples, h=1):
+		
+			total = 0
+			for sample in samples:
+				total += 1/h * uniform_kernel((x - sample) / h)
+			return total / len(samples)
+	\end{lstlisting}
+	Now for different given values of band width, we estimate the pdf function and visualize it alongside with the data histogram which represents the true pdf function. Here is code used for this task:
+	\begin{lstlisting}
+		# Define bandwidth values
+		bandwidth_values = [0.01, 0.1, 1]
+		
+		# Plot the estimated PDF for each bandwidth
+		plt.figure(figsize=(17, 6))
+		for i, bandwidth in enumerate(bandwidth_values, 1):
+			plt.subplot(1, 3, i)
+			plt.hist(X, bins=50, density=True, alpha=0.5, color='blue', label='Histogram')
+			x_values = np.linspace(-4, 4, 1000)
+			pdf_values = parzen_window(x_values, X, h=bandwidth)
+			plt.plot(x_values, pdf_values, label=f'Bandwidth = {bandwidth}')
+			plt.xlabel('x')
+			plt.ylabel('Estimated PDF')
+			plt.title(f'Parzen Window Estimation\nBandwidth = {bandwidth}')
+			plt.legend()
+		
+		plt.show()
+	\end{lstlisting}
+	\pict{1}{F7}
+	A small bandwidth (e.g., 0.01) leads to a PDF that is very sensitive to the data points. This can result in an estimate that captures a lot of the data’s fine structure but can also be \textbf{noisy and overfit} to the sample data, showing peaks and valleys corresponding to individual data points.\\\\
+	A medium bandwidth (e.g., 0.1) provides a balance between capturing the structure of the data and smoothing out noise. The estimated PDF is less sensitive to individual data points than with a smaller bandwidth but still provides a reasonable approximation of the data’s distribution.\\\\
+	A large bandwidth (e.g., 1) produces a very smoothed PDF that may overlook important structures in the data. While it reduces the noise and variance in the estimate, it can also lead to underfitting, where the model fails to capture significant patterns in the data.
+
+\end{document}
