@@ -1,0 +1,4 @@
+\contentsline {section}{\numberline {1}Question 1}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Part1}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Part 2: Transfer learning for image classification}{6}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Question 2}{7}{section.2}%
